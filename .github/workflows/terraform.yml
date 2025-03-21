@@ -1,44 +1,34 @@
-name: "Terraform Deployment"
+name: Azure Terraform Deployment
 
 on:
   push:
     branches:
       - main
 
-permissions:
-  id-token: write
-  contents: read
-  actions: write
- 
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.3.0
+      - name: Debug Environment Variables
+        run: |
+          echo "Client ID: ${{ secrets.AZURE_CLIENT_ID }}"
+          echo "Tenant ID: ${{ secrets.AZURE_TENANT_ID }}"
+          echo "Checking if Azure CLI is installed..."
+          az --version || echo "Azure CLI is not installed"
 
-      - name: Azure Login
+      - name: Log in to Azure
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.ARM_CLIENT_ID }}
-          tenant-id: ${{ secrets.ARM_TENANT_ID }}
-          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
       - name: Initialize Terraform
         run: terraform init
 
-      - name: Validate Terraform
-        run: terraform validate
-
-      - name: Plan Terraform Changes
-        run: terraform plan -out=tfplan
-
-      - name: Apply Terraform Changes
-        run: terraform apply -auto-approve tfplan
+      - name: Apply Terraform Configuration
+        run: terraform apply -auto-approve
