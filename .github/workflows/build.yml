@@ -8,26 +8,33 @@ on:
     branches:
       - main
 
-permissions:  
-  id-token: write  # ✅ REQUIRED for OIDC authentication
-  contents: read
-
 jobs:
   terraform:
-    name: Terraform Apply
+    name: Terraform Plan
     runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Azure Login  
-        uses: azure/login@v1  
+      - name: Verify Terraform Configuration Files
+        run: |
+          if [ -z "$(find ./terraform -name '*.tf' 2>/dev/null)" ]; then
+            echo "❌ No Terraform files found! Ensure your repo has .tf files."
+            exit 1
+          fi
+
+      - name: Login to Azure
+        uses: azure/login@v1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          enable-AzPSSession: false  
+          enable-AzPSSession: false
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -36,9 +43,12 @@ jobs:
 
       - name: Initialize Terraform
         run: terraform init
+        working-directory: ./terraform
+
+      - name: Validate Terraform
+        run: terraform validate
+        working-directory: ./terraform
 
       - name: Plan Terraform
-        run: terraform plan
-
-      - name: Apply Terraform
-        run: terraform apply -auto-approve
+        run: terraform plan -out=tfplan
+        working-directory: ./terraform
