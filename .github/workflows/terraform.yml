@@ -8,26 +8,26 @@ on:
     branches:
       - main
 
-permissions:  
-  id-token: write  # ✅ Required for OIDC authentication  
-  contents: read
-
 jobs:
   terraform:
     name: Terraform Apply
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write   # Required for OIDC authentication
+      contents: read
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Azure Login  
-        uses: azure/login@v1  
+      - name: Login to Azure
+        uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}  # ✅ Required
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}  # ✅ Required
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}  # ✅ Required
-          auth-type: IDENTITY  # ✅ Use OIDC, removes client-secret requirement
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}       # Ensure this secret is set
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}       # Ensure this secret is set
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }} # Ensure this secret is set
+          enable-AzPSSession: false
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -37,8 +37,11 @@ jobs:
       - name: Initialize Terraform
         run: terraform init
 
+      - name: Validate Terraform
+        run: terraform validate
+
       - name: Plan Terraform
-        run: terraform plan
+        run: terraform plan -out=tfplan
 
       - name: Apply Terraform
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve tfplan
