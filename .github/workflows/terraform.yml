@@ -14,16 +14,21 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      id-token: write   # Required for OIDC authentication
+      id-token: write
       contents: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Ensures all files are checked out
+
+      - name: Debug - List Files
+        run: ls -R
 
       - name: Verify Terraform Configuration Files
         run: |
-          if [ -z "$(find . -name '*.tf')" ]; then
+          if [ -z "$(find . -name '*.tf' 2>/dev/null)" ]; then
             echo "❌ No Terraform files found! Ensure your repository has .tf files."
             exit 1
           fi
@@ -43,9 +48,12 @@ jobs:
 
       - name: Initialize Terraform
         run: terraform init
+        working-directory: ./terraform  # Adjust if needed
 
       - name: Validate Terraform
         run: terraform validate
+        working-directory: ./terraform  # Adjust if needed
 
       - name: Plan Terraform
         run: terraform plan -out=tfplan
+        working-directory: ./terraform  # Adjust if needed
